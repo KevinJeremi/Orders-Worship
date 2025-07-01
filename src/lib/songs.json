@@ -1,0 +1,66 @@
+[
+  {
+    "id": 1,
+    "title": "Amazing Grace",
+    "artist": "John Newton",
+    "lyrics": [
+      "Amazing grace how sweet the sound",
+      "That saved a wretch like me",
+      "I once was lost, but now am found",
+      "Was blind, but now I see",
+      "",
+      "'Twas grace that taught my heart to fear",
+      "And grace my fears relieved",
+      "How precious did that grace appear",
+      "The hour I first believed"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "How Great Thou Art",
+    "artist": "Carl Boberg",
+    "lyrics": [
+      "O Lord my God, when I in awesome wonder",
+      "Consider all the worlds Thy hands have made",
+      "I see the stars, I hear the rolling thunder",
+      "Thy power throughout the universe displayed",
+      "",
+      "Then sings my soul, my Savior God, to Thee",
+      "How great Thou art, how great Thou art",
+      "Then sings my soul, my Savior God, to Thee",
+      "How great Thou art, how great Thou art"
+    ]
+  },
+  {
+    "id": 3,
+    "title": "Holy, Holy, Holy",
+    "artist": "Reginald Heber",
+    "lyrics": [
+      "Holy, Holy, Holy! Lord God Almighty!",
+      "Early in the morning our song shall rise to thee",
+      "Holy, Holy, Holy! Merciful and mighty!",
+      "God in three persons, blessed Trinity!",
+      "",
+      "Holy, Holy, Holy! All the saints adore thee",
+      "Casting down their golden crowns around the glassy sea",
+      "Cherubim and seraphim falling down before thee",
+      "Which wert and art and evermore shalt be"
+    ]
+  },
+  {
+    "id": 4,
+    "title": "Great Is Thy Faithfulness",
+    "artist": "Thomas Chisholm",
+    "lyrics": [
+      "Great is Thy faithfulness, O God my Father",
+      "There is no shadow of turning with Thee",
+      "Thou changest not, Thy compassions, they fail not",
+      "As Thou hast been, Thou forever will be",
+      "",
+      "Great is Thy faithfulness! Great is Thy faithfulness!",
+      "Morning by morning new mercies I see",
+      "All I have needed Thy hand hath provided",
+      "Great is Thy faithfulness, Lord, unto me"
+    ]
+  }
+]

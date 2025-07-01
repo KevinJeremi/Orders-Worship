@@ -1,0 +1,34 @@
+{
+  "appId": "com.worshipapp.orders",
+  "productName": "Worship Presentation",
+  "directories": {
+    "output": "dist_electron"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "src/database",
+      "to": "database"
+    },
+    {
+      "from": "media",
+      "to": "media"
+    }
+  ],
+  "win": {
+    "target": ["portable", "nsis"]
+  },
+  "mac": {
+    "target": ["dmg", "zip"]
+  },
+  "linux": {
+    "target": ["AppImage", "deb"]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}
