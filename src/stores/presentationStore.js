@@ -153,6 +153,25 @@ export const usePresentationStore = defineStore('presentation', {
     updateSlideContent(content) {
       this.currentSlideContent = { ...this.currentSlideContent, ...content }
     },
+
+    // Set current slide content directly (for Bible verses and other content)
+    setCurrentSlideContent(content) {
+      this.currentSlideContent = {
+        type: content.type || 'text',
+        text: content.text || '',
+        metadata: content.metadata || content.reference || '',
+        lines: content.lines || [content.text || '']
+      }
+      this.currentLineIndex = 0
+      
+      // Clear previous selections when setting new content
+      if (content.type === 'bible') {
+        this.selectedSong = null
+        this.selectedBibleVerse = content
+      } else if (content.type === 'song') {
+        this.selectedBibleVerse = null
+      }
+    },
     
     // Select and display a song
     selectSong(songId, lineIndex = 0) {

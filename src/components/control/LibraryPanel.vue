@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { usePresentationStore } from '../../stores/presentationStore.js'
 import songData from '../../lib/songs.json'
+import BiblePanel from './BiblePanel.vue'
 
 const store = usePresentationStore()
 const activeTab = ref('songs')
@@ -15,15 +16,6 @@ onMounted(() => {
     store.songLibrary = [...songData]
   }
   filteredSongs.value = store.songLibrary || songData
-})
-
-// Bible search form
-const bibleSearch = reactive({
-  book: '',
-  chapter: '',
-  verse: '',
-  results: [],
-  isSearching: false
 })
 
 const switchTab = (tab) => {
@@ -46,42 +38,6 @@ const filterSongs = () => {
 const selectSong = (song) => {
   // REFACTORED: Only update store, let ControlWindow handle IPC
   store.selectSong(song.id)
-}
-
-const searchBible = async () => {
-  if (!window.electronAPI) {
-    console.warn('Electron API not available')
-    return
-  }
-
-  bibleSearch.isSearching = true
-  
-  try {
-    const query = {
-      book: bibleSearch.book.trim(),
-      chapter: bibleSearch.chapter ? parseInt(bibleSearch.chapter) : null,
-      verse: bibleSearch.verse ? parseInt(bibleSearch.verse) : null
-    }
-
-    const result = await window.electronAPI.searchBible(query)
-    
-    if (result.success) {
-      bibleSearch.results = result.data
-    } else {
-      console.error('Bible search failed:', result.error)
-      bibleSearch.results = []
-    }
-  } catch (error) {
-    console.error('Bible search error:', error)
-    bibleSearch.results = []
-  } finally {
-    bibleSearch.isSearching = false
-  }
-}
-
-const selectBibleVerse = (verse) => {
-  // REFACTORED: Only update store, let ControlWindow handle IPC
-  store.setBibleVerse(verse)
 }
 </script>
 
@@ -134,71 +90,8 @@ const selectBibleVerse = (verse) => {
       </div>
 
       <!-- Bible Tab -->
-      <div v-if="activeTab === 'bible'" class="tab-content">
-        <div class="bible-search">
-          <div class="search-form">
-            <div class="form-group">
-              <label>Book</label>
-              <input 
-                v-model="bibleSearch.book"
-                type="text" 
-                placeholder="e.g., Genesis, John"
-                class="form-input"
-                @keyup.enter="searchBible"
-              />
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label>Chapter</label>
-                <input 
-                  v-model="bibleSearch.chapter"
-                  type="number" 
-                  placeholder="1"
-                  class="form-input"
-                  @keyup.enter="searchBible"
-                />
-              </div>
-              
-              <div class="form-group">
-                <label>Verse</label>
-                <input 
-                  v-model="bibleSearch.verse"
-                  type="number" 
-                  placeholder="1"
-                  class="form-input"
-                  @keyup.enter="searchBible"
-                />
-              </div>
-            </div>
-            
-            <button 
-              class="btn btn-primary search-btn"
-              @click="searchBible"
-              :disabled="bibleSearch.isSearching"
-            >
-              {{ bibleSearch.isSearching ? 'Searching...' : 'Search' }}
-            </button>
-          </div>
-
-          <div class="bible-results">
-            <div v-if="bibleSearch.results.length === 0 && !bibleSearch.isSearching" class="no-results">
-              Enter search criteria and click Search
-            </div>
-            
-            <div 
-              v-for="verse in bibleSearch.results" 
-              :key="`${verse.book}-${verse.chapter}-${verse.verse}`"
-              class="bible-verse"
-              @click="selectBibleVerse(verse)"
-            >
-              <div class="verse-reference">
-                {{ verse.book }} {{ verse.chapter }}:{{ verse.verse }}
-              </div>
-              <div class="verse-text">{{ verse.text }}</div>
-            </div>
-          </div>
-        </div>
+      <div v-if="activeTab === 'bible'" class="tab-content bible-tab">
+        <BiblePanel />
       </div>
     </div>
   </div>
@@ -248,6 +141,12 @@ const selectBibleVerse = (verse) => {
 
 .tab-content {
   padding: 16px;
+}
+
+/* Special styling for Bible tab */
+.bible-tab {
+  padding: 0; /* Let BiblePanel handle its own padding */
+  height: calc(100vh - 120px); /* Adjust height for better scrolling */
 }
 
 /* Song list styles */
@@ -303,92 +202,5 @@ const selectBibleVerse = (verse) => {
 .song-artist {
   font-size: 12px;
   color: #cccccc;
-}
-
-/* Bible search styles */
-.bible-search {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.search-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.form-group label {
-  font-size: 12px;
-  color: #cccccc;
-  font-weight: 500;
-}
-
-.form-input {
-  padding: 6px 8px;
-  border: 1px solid #3a3a3a;
-  border-radius: 4px;
-  background-color: #2a2a2a;
-  color: #ffffff;
-  font-size: 13px;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #007acc;
-}
-
-.search-btn {
-  margin-top: 8px;
-}
-
-.bible-results {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.no-results {
-  text-align: center;
-  color: #666666;
-  font-style: italic;
-  padding: 20px;
-}
-
-.bible-verse {
-  padding: 12px;
-  border-radius: 6px;
-  background-color: #2a2a2a;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: 8px;
-}
-
-.bible-verse:hover {
-  background-color: #3a3a3a;
-}
-
-.verse-reference {
-  font-weight: 600;
-  color: #007acc;
-  margin-bottom: 6px;
-  font-size: 13px;
-}
-
-.verse-text {
-  color: #ffffff;
-  font-size: 14px;
-  line-height: 1.4;
 }
 </style>
