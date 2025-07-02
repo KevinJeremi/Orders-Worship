@@ -1,5 +1,5 @@
 <template>
-  <div class="bible-panel">
+  <div class="simple-bible-panel">
     <div class="bible-header">
       <h3>
         <i class="icon">📖</i>
@@ -18,23 +18,39 @@
     <!-- Loading State -->
     <div v-if="isLoading" class="loading">
       <div class="spinner"></div>
-      <p>Memuat data Alkitab...</p>
+      <p>Memuat data Alkitab{{ loadingDots }}</p>
+      <div v-if="loadingProgress > 0" class="loading-progress">
+        <div class="progress-bar">
+          <div class="progress-fill" :style="`width: ${loadingProgress}%`"></div>
+        </div>
+        <span class="progress-text">{{ Math.round(loadingProgress) }}%</span>
+      </div>
     </div>
 
     <!-- Error State -->
-    <div v-if="error" class="error">
+    <div v-if="error && !isLoading && !hasBibleData" class="error">
       <p>Error: {{ error }}</p>
       <button @click="loadTBFile" class="btn-retry">Coba Lagi</button>
     </div>
 
     <!-- Bible Selection Interface -->
     <div v-if="hasBibleData" class="bible-interface">
-      <!-- Book Selection -->
+      <!-- Testament Selection -->
       <div class="form-group">
+        <label>Pilih Perjanjian:</label>
+        <select v-model="selectedTestament" @change="onTestamentChange" class="form-select">
+          <option value="">-- Pilih Perjanjian --</option>
+          <option value="old">Perjanjian Lama</option>
+          <option value="new">Perjanjian Baru</option>
+        </select>
+      </div>
+
+      <!-- Book Selection -->
+      <div v-if="selectedTestament" class="form-group">
         <label>Pilih Kitab:</label>
         <select v-model="selectedBookName" @change="onBookChange" class="form-select">
           <option value="">-- Pilih Kitab --</option>
-          <option v-for="book in availableBooks" :key="book" :value="book">
+          <option v-for="book in filteredBooks" :key="book" :value="book">
             {{ book }}
           </option>
         </select>
@@ -64,15 +80,24 @@
 
       <!-- Selected Verse Display -->
       <div v-if="currentVerse" class="verse-display">
-        <div class="verse-reference">
-          {{ selectedBookName }} {{ selectedChapter }}:{{ selectedVerseNum }}
+        <div class="verse-header">
+          <div class="verse-reference">
+            {{ selectedBookName }} {{ selectedChapter }}:{{ selectedVerseNum }}
+          </div>
+          <div class="auto-preview-indicator">
+            <span class="preview-dot"></span>
+            Live Preview
+          </div>
         </div>
         <div class="verse-text">
           {{ currentVerse.firman }}
         </div>
-        <button @click="selectForPresentation" class="btn-select">
-          ✨ Tampilkan di Presentasi
-        </button>
+        <div class="verse-actions">
+          <button @click="selectForPresentation" class="btn-select">
+            ✨ Tampilkan di Presentasi
+          </button>
+          <small class="auto-info">* Ayat otomatis tampil di preview saat dipilih</small>
+        </div>
       </div>
 
       <!-- Quick Search -->
@@ -104,13 +129,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { usePresentationStore } from '../../stores/presentationStore.js'
 
 const presentationStore = usePresentationStore()
 
-// Reactive data
+// Simple reactive data
 const bibleData = ref([])
+const selectedTestament = ref('')
 const selectedBookName = ref('')
 const selectedChapter = ref('')
 const selectedVerseNum = ref('')
@@ -118,6 +144,37 @@ const searchQuery = ref('')
 const searchResults = ref([])
 const isLoading = ref(false)
 const error = ref(null)
+const loadingProgress = ref(0)
+const loadingDots = ref('...')
+
+// Animation for loading dots
+let dotsInterval
+if (import.meta.env.SSR === false) { // Only in browser, not during SSR
+  dotsInterval = setInterval(() => {
+    loadingDots.value = loadingDots.value.length >= 3 ? '.' : loadingDots.value + '.'
+  }, 500)
+}
+
+// Bible book categorization
+const oldTestamentBooks = [
+  'Kejadian', 'Keluaran', 'Imamat', 'Bilangan', 'Ulangana',
+  'Yosua', 'Hakim-Hakim', 'Rut', '1 Samuel', '2 Samuel',
+  '1 Raja-Raja', '2 Raja-Raja', '1 Tawarikh', '2 Tawarikh',
+  'Ezra', 'Nehemia', 'Ester', 'Ayub', 'Mazmur', 'Amsal',
+  'Pengkhotbah', 'Kidung Agung', 'Yesaya', 'Yeremia', 'Ratapan',
+  'Yehezkiel', 'Daniel', 'Hosea', 'Yoel', 'Amos', 'Obaja',
+  'Yunus', 'Mikha', 'Nahum', 'Habakuk', 'Zefanya', 'Hagai',
+  'Zakharia', 'Maleakhi'
+]
+
+const newTestamentBooks = [
+  'Matius', 'Markus', 'Lukas', 'Yohanes', 'Kisah Para Rasul',
+  'Roma', '1 Korintus', '2 Korintus', 'Galatia', 'Efesus',
+  'Filipi', 'Kolose', '1 Tesalonika', '2 Tesalonika', '1 Timotius',
+  '2 Timotius', 'Titus', 'Filemon', 'Ibrani', 'Yakobus',
+  '1 Petrus', '2 Petrus', '1 Yohanes', '2 Yohanes', '3 Yohanes',
+  'Yudas', 'Wahyu'
+]
 
 // Computed properties
 const hasBibleData = computed(() => bibleData.value.length > 0)
@@ -126,6 +183,23 @@ const availableBooks = computed(() => {
   if (!hasBibleData.value) return []
   const books = [...new Set(bibleData.value.map(v => v.kitab))]
   return books.sort()
+})
+
+const filteredBooks = computed(() => {
+  if (!selectedTestament.value) return []
+  
+  const booksInTestament = selectedTestament.value === 'old' 
+    ? oldTestamentBooks 
+    : newTestamentBooks
+  
+  return availableBooks.value
+    .filter(book => booksInTestament.includes(book))
+    .sort((a, b) => {
+      // Sort by order in testament
+      const aIndex = booksInTestament.indexOf(a)
+      const bIndex = booksInTestament.indexOf(b)
+      return aIndex - bIndex
+    })
 })
 
 const availableChapters = computed(() => {
@@ -171,37 +245,75 @@ const loadTBFile = async () => {
     const csvText = await response.text()
     console.log('CSV loaded, parsing...')
     
-    // Parse CSV
+    // Parse CSV more efficiently
     const lines = csvText.split('\n')
     const verses = []
+    const batchSize = 1000
+    let currentBatch = 0
     
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim()
-      if (!line) continue
+    // Use batching to avoid UI freezing
+    const processBatch = () => {
+      console.log(`Processing batch ${currentBatch + 1}...`)
+      const startIdx = 1 + (currentBatch * batchSize)
+      const endIdx = Math.min(startIdx + batchSize, lines.length)
       
-      // Simple CSV parsing - split by comma but handle quotes
-      const values = parseCSVLine(line)
+      for (let i = startIdx; i < endIdx; i++) {
+        const line = lines[i]?.trim()
+        if (!line) continue
+        
+        // Simple CSV parsing - split by comma but handle quotes
+        try {
+          const values = parseCSVLine(line)
+          
+          if (values.length >= 5) {
+            verses.push({
+              id: values[0],
+              kitab: values[1],
+              pasal: values[2],
+              ayat: values[3],
+              firman: values[4].replace(/^"(.*)"$/, '$1') // Remove surrounding quotes
+            })
+          }
+        } catch (err) {
+          console.warn(`Error parsing line ${i}:`, err)
+          // Continue with next line
+        }
+      }
       
-      if (values.length >= 5) {
-        verses.push({
-          id: values[0],
-          kitab: values[1],
-          pasal: values[2],
-          ayat: values[3],
-          firman: values[4].replace(/^"(.*)"$/, '$1') // Remove surrounding quotes
-        })
+      currentBatch++
+      
+      // Calculate and update progress
+      const totalLines = lines.length - 1 // Excluding header line
+      const processedLines = Math.min((currentBatch * batchSize), totalLines)
+      loadingProgress.value = (processedLines / totalLines) * 100
+      
+      // Update UI to show progress
+      if (startIdx + batchSize < lines.length) {
+        setTimeout(processBatch, 0) // Continue with next batch in next event loop
+      } else {
+        // Finished parsing
+        bibleData.value = verses
+        console.log(`Bible data loaded: ${verses.length} verses from ${availableBooks.value.length} books`)
+        
+        // Clear intervals and finish loading
+        if (dotsInterval) clearInterval(dotsInterval)
+        loadingProgress.value = 100
+        isLoading.value = false
       }
     }
     
-    bibleData.value = verses
-    console.log(`Bible data loaded: ${verses.length} verses from ${availableBooks.value.length} books`)
+    // Start processing in batches
+    processBatch()
+    
+    // The bibleData assignment now happens in the processBatch function
+    // when all batches are complete
     
   } catch (err) {
     console.error('Error loading Bible data:', err)
     error.value = err.message
-  } finally {
     isLoading.value = false
   }
+  // Finally block removed as isLoading is now set in the processBatch function
 }
 
 const parseCSVLine = (line) => {
@@ -231,6 +343,12 @@ const parseCSVLine = (line) => {
   return values
 }
 
+const onTestamentChange = () => {
+  selectedBookName.value = ''
+  selectedChapter.value = ''
+  selectedVerseNum.value = ''
+}
+
 const onBookChange = () => {
   selectedChapter.value = ''
   selectedVerseNum.value = ''
@@ -241,10 +359,13 @@ const onChapterChange = () => {
 }
 
 const onVerseChange = () => {
-  // Verse is already selected, currentVerse will be computed
+  // Auto-preview when verse is selected
+  if (currentVerse.value) {
+    updatePreview()
+  }
 }
 
-const selectForPresentation = () => {
+const updatePreview = () => {
   if (!currentVerse.value) return
   
   const verse = currentVerse.value
@@ -257,8 +378,13 @@ const selectForPresentation = () => {
     reference: reference,
     lines: [verse.firman]
   })
+}
+
+const selectForPresentation = () => {
+  if (!currentVerse.value) return
   
-  console.log('Bible verse selected for presentation:', reference)
+  updatePreview()
+  console.log('Bible verse selected for presentation:', `${currentVerse.value.kitab} ${currentVerse.value.pasal}:${currentVerse.value.ayat}`)
 }
 
 const performSearch = () => {
@@ -278,21 +404,51 @@ const performSearch = () => {
 }
 
 const selectSearchResult = (result) => {
+  // Determine which testament the book belongs to
+  const testament = oldTestamentBooks.includes(result.kitab) ? 'old' : 'new'
+  
+  selectedTestament.value = testament
   selectedBookName.value = result.kitab
   selectedChapter.value = result.pasal
   selectedVerseNum.value = result.ayat
   searchQuery.value = ''
   searchResults.value = []
+  
+  // Auto-preview the selected verse
+  setTimeout(() => {
+    if (currentVerse.value) {
+      updatePreview()
+    }
+  }, 100)
 }
 
 const truncateText = (text, maxLength) => {
   if (!text || text.length <= maxLength) return text
   return text.substring(0, maxLength) + '...'
 }
+
+// Watch for verse changes to auto-update preview
+watch(currentVerse, (newVerse) => {
+  if (newVerse) {
+    updatePreview()
+  }
+}, { immediate: false })
+
+// Auto-load on component mount
+import { onMounted } from 'vue'
+
+onMounted(() => {
+  // Auto-load Bible data if not already loaded
+  if (!hasBibleData.value && !isLoading.value) {
+    setTimeout(() => {
+      loadTBFile()
+    }, 1000) // Slight delay to allow UI to render first
+  }
+})
 </script>
 
 <style scoped>
-.bible-panel {
+.simple-bible-panel {
   padding: 20px;
   background: #1a1a1a;
   color: #ffffff;
@@ -361,6 +517,33 @@ const truncateText = (text, maxLength) => {
   100% { transform: rotate(360deg); }
 }
 
+.loading-progress {
+  margin-top: 15px;
+  width: 100%;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.progress-bar {
+  height: 8px;
+  background: #333;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4a9eff;
+  transition: width 0.3s ease-in-out;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #ccc;
+}
+
 .error {
   background: #ff4444;
   color: white;
@@ -383,7 +566,7 @@ const truncateText = (text, maxLength) => {
 .bible-interface {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
 }
 
 .form-group {
@@ -406,11 +589,18 @@ const truncateText = (text, maxLength) => {
   color: #ffffff;
   font-size: 14px;
   cursor: pointer;
+  transition: border-color 0.3s;
 }
 
 .form-select:focus {
   outline: none;
   border-color: #4a9eff;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2);
+}
+
+.form-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Verse Display */
@@ -421,11 +611,45 @@ const truncateText = (text, maxLength) => {
   border-left: 4px solid #4a9eff;
 }
 
+.verse-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .verse-reference {
   font-weight: bold;
   color: #4a9eff;
-  margin-bottom: 10px;
-  font-size: 14px;
+  font-size: 16px;
+}
+
+.auto-preview-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #28a745;
+  background: rgba(40, 167, 69, 0.1);
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.preview-dot {
+  width: 8px;
+  height: 8px;
+  background: #28a745;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
 .verse-text {
@@ -433,6 +657,12 @@ const truncateText = (text, maxLength) => {
   line-height: 1.6;
   margin-bottom: 15px;
   color: #fff;
+}
+
+.verse-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .btn-select {
@@ -444,10 +674,17 @@ const truncateText = (text, maxLength) => {
   cursor: pointer;
   font-size: 14px;
   transition: background-color 0.3s;
+  align-self: flex-start;
 }
 
 .btn-select:hover {
   background: #218838;
+}
+
+.auto-info {
+  color: #888;
+  font-size: 11px;
+  font-style: italic;
 }
 
 /* Quick Search */

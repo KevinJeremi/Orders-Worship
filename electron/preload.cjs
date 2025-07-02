@@ -47,16 +47,27 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Preload script loaded (preload.cjs)')
-  console.log('🛠️ Available electronAPI methods:', Object.keys(window.electronAPI))
-  console.log('✅ Has uploadMediaFile:', !!window.electronAPI.uploadMediaFile)
-  console.log('✅ Has getMediaFiles:', !!window.electronAPI.getMediaFiles)
-  console.log('✅ Has getMediaPath:', !!window.electronAPI.getMediaPath)
-  console.log('📋 Full electronAPI object:', window.electronAPI)
   
-  // Test uploadMediaFile function specifically
-  if (typeof window.electronAPI.uploadMediaFile === 'function') {
-    console.log('✅ uploadMediaFile function is properly exposed and callable')
-  } else {
-    console.error('❌ uploadMediaFile function is NOT properly exposed:', typeof window.electronAPI.uploadMediaFile)
-  }
+  // Safely check if electronAPI is available
+  setTimeout(() => {
+    try {
+      if (window.electronAPI) {
+        console.log('🛠️ Available electronAPI methods:', Object.keys(window.electronAPI))
+        console.log('✅ Has uploadMediaFile:', !!window.electronAPI.uploadMediaFile)
+        console.log('✅ Has getMediaFiles:', !!window.electronAPI.getMediaFiles)
+        console.log('✅ Has getMediaPath:', !!window.electronAPI.getMediaPath)
+        
+        // Test uploadMediaFile function specifically
+        if (typeof window.electronAPI.uploadMediaFile === 'function') {
+          console.log('✅ uploadMediaFile function is properly exposed and callable')
+        } else {
+          console.log('❌ uploadMediaFile function is NOT properly exposed:', typeof window.electronAPI.uploadMediaFile)
+        }
+      } else {
+        console.log('⚠️ window.electronAPI is not available yet')
+      }
+    } catch (error) {
+      console.error('Error checking electronAPI:', error.message)
+    }
+  }, 100) // Small delay to ensure API is ready
 })

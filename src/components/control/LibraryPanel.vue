@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { usePresentationStore } from '../../stores/presentationStore.js'
 import songData from '../../lib/songs.json'
-import BiblePanel from './BiblePanel.vue'
+import SimpleBiblePanel from './SimpleBiblePanel.vue'
 
 const store = usePresentationStore()
 const activeTab = ref('songs')
@@ -91,7 +91,7 @@ const selectSong = (song) => {
 
       <!-- Bible Tab -->
       <div v-if="activeTab === 'bible'" class="tab-content bible-tab">
-        <BiblePanel />
+        <SimpleBiblePanel />
       </div>
     </div>
   </div>
@@ -145,7 +145,7 @@ const selectSong = (song) => {
 
 /* Special styling for Bible tab */
 .bible-tab {
-  padding: 0; /* Let BiblePanel handle its own padding */
+  padding: 0; /* Let SimpleBiblePanel handle its own padding */
   height: calc(100vh - 120px); /* Adjust height for better scrolling */
 }
 

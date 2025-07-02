@@ -3,6 +3,7 @@
 ## 📖 Pengantar
 
 Aplikasi Worship Presentation sekarang mendukung tampilan ayat Alkitab dengan fitur:
+
 - Import data Alkitab dari file CSV
 - Pencarian ayat berdasarkan teks atau referensi
 - Navigasi berdasarkan kitab, pasal, dan ayat
@@ -15,12 +16,14 @@ Aplikasi Worship Presentation sekarang mendukung tampilan ayat Alkitab dengan fi
 File CSV harus memiliki kolom dengan nama-nama berikut (salah satu dari alternatif):
 
 **Kolom yang Dikenali:**
+
 - **Book ID**: `book_id`, `book`, atau `kitab`
 - **Chapter**: `chapter` atau `pasal`
 - **Verse Number**: `verse`, `ayat_no`, atau `verse_number`
 - **Verse Text**: `text`, `ayat`, atau `isi`
 
 **Contoh Format CSV:**
+
 ```csv
 book_id,book,chapter,verse,text
 gen,Kejadian,1,1,"Pada mulanya Allah menciptakan langit dan bumi."
@@ -41,16 +44,19 @@ joh,Yohanes,3,16,"Karena begitu besar kasih Allah akan dunia ini, sehingga Ia te
 Setelah data terload, Anda dapat:
 
 #### **Pencarian Ayat:**
+
 - Ketik kata kunci di kotak pencarian untuk mencari dalam teks ayat
 - Ketik referensi seperti "Yohanes 3:16" untuk mencari ayat spesifik
 - Hasil akan ditampilkan dengan referensi dan teks ayat
 
 #### **Navigasi Manual:**
+
 - Pilih kitab dari daftar Perjanjian Lama atau Perjanjian Baru
 - Pilih pasal yang tersedia
 - Pilih ayat yang diinginkan
 
 #### **Menampilkan Ayat:**
+
 - Klik pada ayat yang diinginkan
 - Ayat akan otomatis muncul di panel preview
 - Klik **"Show Presentation"** untuk menampilkan di layar presentasi
@@ -60,6 +66,7 @@ Setelah data terload, Anda dapat:
 Aplikasi mengenali ID kitab standar berikut:
 
 **Perjanjian Lama:**
+
 - `gen` - Kejadian
 - `exo` - Keluaran
 - `lev` - Imamat
@@ -73,6 +80,7 @@ Aplikasi mengenali ID kitab standar berikut:
 - ... (dan seterusnya)
 
 **Perjanjian Baru:**
+
 - `mat` - Matius
 - `mar` - Markus
 - `luk` - Lukas
@@ -85,16 +93,19 @@ Aplikasi mengenali ID kitab standar berikut:
 ## 📝 Tips dan Troubleshooting
 
 ### File CSV Tidak Terbaca?
+
 - Pastikan encoding file adalah UTF-8
 - Pastikan menggunakan koma (,) sebagai delimiter
 - Pastikan text yang mengandung koma diapit tanda kutip ("")
 
 ### Data Tidak Muncul?
+
 - Periksa nama kolom di baris pertama CSV
 - Pastikan tidak ada baris kosong di awal file
 - Cek console browser untuk pesan error
 
 ### Pencarian Tidak Bekerja?
+
 - Pastikan menggunakan minimal 2 karakter untuk pencarian
 - Coba gunakan kata yang lebih spesifik
 - Periksa ejaan kitab dan referensi
@@ -102,6 +113,7 @@ Aplikasi mengenali ID kitab standar berikut:
 ## 🎨 Kustomisasi Tampilan
 
 Ayat Alkitab akan menggunakan theme yang sama dengan lagu:
+
 - Font, ukuran, dan warna dapat diatur di panel Media
 - Background dapat diubah (warna solid, gambar, atau video)
 - Text alignment dapat disesuaikan
@@ -109,6 +121,7 @@ Ayat Alkitab akan menggunakan theme yang sama dengan lagu:
 ## 📚 Sumber Data Alkitab
 
 Anda dapat mendapatkan data Alkitab dalam format CSV dari:
+
 - [Open Scripture](https://ebible.org/)
 - [Bible API](https://scripture.api.bible/)
 - Konversi dari format lain (JSON, XML, database)
@@ -116,6 +129,7 @@ Anda dapat mendapatkan data Alkitab dalam format CSV dari:
 ## 🆘 Support
 
 Jika mengalami masalah:
+
 1. Periksa file `sample_bible.csv` sebagai contoh format yang benar
 2. Pastikan aplikasi berjalan dalam mode Electron (bukan browser)
 3. Restart aplikasi jika data tidak ter-refresh
