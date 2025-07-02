@@ -244,11 +244,98 @@ export const usePresentationStore = defineStore('presentation', {
     updateTheme(theme) {
       console.log('Store: Updating theme with:', JSON.stringify(theme));
       console.log('Store: Previous text alignment was:', this.currentTheme.textAlign);
+      console.log('Store: Previous font size was:', this.currentTheme.fontSize);
+      
+      // Ensure fontSize is a number if provided
+      const processedTheme = { ...theme };
+      if (processedTheme.fontSize !== undefined) {
+        processedTheme.fontSize = Number(processedTheme.fontSize);
+      }
       
       // Create a new object to ensure reactivity
-      this.currentTheme = { ...this.currentTheme, ...theme };
+      this.currentTheme = { ...this.currentTheme, ...processedTheme };
       
       console.log('Store: Updated text alignment is now:', this.currentTheme.textAlign);
+      console.log('Store: Updated font size is now:', this.currentTheme.fontSize);
+      
+      // If in Electron environment, send theme update to the main process
+      try {
+        if (window.electronAPI && window.electronAPI.updatePresentation) {
+          // Cek apakah objek dapat dicloning dengan JSON
+          const jsonSafe = {
+            fontFamily: this.currentTheme.fontFamily || 'Segoe UI, Roboto, Arial, sans-serif',
+            fontSize: Number(this.currentTheme.fontSize || 48),
+            color: this.currentTheme.color || '#FFFFFF',
+            textAlign: this.currentTheme.textAlign || 'center',
+            textShadow: this.currentTheme.textShadow || '3px 3px 10px rgba(0,0,0,0.95)',
+            lineHeight: Number(this.currentTheme.lineHeight || 1.4),
+            padding: Number(this.currentTheme.padding || 60),
+            fontWeight: this.currentTheme.fontWeight || '600',
+            letterSpacing: this.currentTheme.letterSpacing || '0.5px'
+          };
+          
+          // Gunakan setTimeout untuk mengisolasi pemanggilan asinkron, menghindari error kloningnya
+          setTimeout(() => {
+            try {
+              window.electronAPI.updatePresentation({ theme: jsonSafe });
+              console.log('Theme update sent to Electron successfully');
+            } catch (ipcError) {
+              console.error('Failed to send theme update to Electron:', ipcError);
+            }
+          }, 0);
+        }
+      } catch (error) {
+        console.error('Error in updateTheme trying to access Electron API:', error);
+      }
+    },
+    
+    // Specialized method for font size updates
+    setFontSize(size) {
+      console.log('Store: Setting font size to:', size);
+      
+      // Ensure size is a number
+      const fontSize = Number(size);
+      
+      // Update the theme with just the font size
+      this.currentTheme = { 
+        ...this.currentTheme, 
+        fontSize 
+      };
+      
+      // If in Electron environment, send theme update to the main process
+      try {
+        if (window.electronAPI && window.electronAPI.updatePresentation) {
+          // Create a safe object for IPC
+          const safeTheme = {
+            fontFamily: this.currentTheme.fontFamily || 'Segoe UI, Roboto, Arial, sans-serif',
+            fontSize: fontSize,
+            color: this.currentTheme.color || '#FFFFFF',
+            textAlign: this.currentTheme.textAlign || 'center',
+            textShadow: this.currentTheme.textShadow || '3px 3px 10px rgba(0,0,0,0.95)',
+            lineHeight: Number(this.currentTheme.lineHeight || 1.4),
+            padding: Number(this.currentTheme.padding || 60),
+            fontWeight: this.currentTheme.fontWeight || '600',
+            letterSpacing: this.currentTheme.letterSpacing || '0.5px'
+          };
+          
+          // Use setTimeout to isolate async call
+          setTimeout(() => {
+            try {
+              window.electronAPI.updatePresentation({ theme: safeTheme });
+            } catch (error) {
+              console.error('Error sending font size update to Electron:', error);
+            }
+          }, 0);
+        }
+      } catch (error) {
+        console.error('Error preparing font size update for Electron:', error);
+      }
+      
+      // Update CSS variables for immediate UI feedback
+      document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
+      document.documentElement.style.setProperty('--global-font-size', `${fontSize}px`);
+      
+      console.log('Store: Font size updated to:', fontSize);
     },
     
     // Set media
@@ -258,53 +345,17 @@ export const usePresentationStore = defineStore('presentation', {
       
       console.log('🎬 setMedia called with:', mediaFile)
       console.log('🎬 isVideo:', isVideo)
-      console.log('🎬 Is Electron:', !!window.electronAPI)
       
-      let mediaPath
-      
-      if (window.electronAPI) {
-        try {
-          // Get proper absolute path from Electron main process
-          const result = await window.electronAPI.getMediaPath(mediaFile)
-          if (result.success) {
-            mediaPath = result.path
-            console.log('🎬 Got media path from Electron:', mediaPath)
-          } else {
-            console.error('🎬 Failed to get media path:', result.error)
-            mediaPath = `./media/${mediaFile}` // fallback
-          }
-        } catch (error) {
-          console.error('🎬 Error getting media path:', error)
-          mediaPath = `./media/${mediaFile}` // fallback
-        }
+      if (isVideo) {
+        this.setBackground({
+          type: 'video',
+          value: mediaFile
+        })
       } else {
-        // Fallback for browser environment
-        mediaPath = `./media/${mediaFile}`
-      }
-      
-      console.log('🎬 Final media path:', mediaPath)
-      
-      // Update currentBackground directly
-      this.currentBackground = {
-        type: isVideo ? 'video' : 'image',
-        value: mediaPath,
-        opacity: 1.0
-      }
-      
-      console.log('🎬 Updated background:', this.currentBackground)
-      
-      // Send update to presentation window if we're using Electron
-      if (window.electronAPI) {
-        // Create plain objects to avoid cloning issues
-        const updateData = {
-          content: JSON.parse(JSON.stringify(this.currentSlideContent)),
-          theme: JSON.parse(JSON.stringify(this.currentTheme)),
-          background: JSON.parse(JSON.stringify(this.currentBackground)),
-          currentLineIndex: this.currentLineIndex
-        }
-        
-        console.log('🎬 Sending presentation update with media path:', updateData.background)
-        window.electronAPI.updatePresentation(updateData)
+        this.setBackground({
+          type: 'image',
+          value: mediaFile
+        })
       }
     },
     
@@ -374,6 +425,6 @@ export const usePresentationStore = defineStore('presentation', {
       }
       
       console.log("Display settings synced. Current text alignment:", this.currentTheme.textAlign);
-    }
+    },
   }
 })

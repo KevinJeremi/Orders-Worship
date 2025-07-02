@@ -95,6 +95,11 @@ onMounted(() => {
     textAlign: store.currentTheme.textAlign
   }
   
+  // Set initial CSS variables
+  const initialFontSize = Number(store.currentTheme.fontSize);
+  document.documentElement.style.setProperty('--global-font-size', `${initialFontSize}px`);
+  document.documentElement.style.setProperty('--font-size', `${initialFontSize}px`);
+  
   // Force initial background settings sync
   backgroundSettings.value = {
     type: store.currentBackground.type,
@@ -369,17 +374,49 @@ const onFontFamilyChange = () => {
 }
 
 const onFontSizeChange = () => {
-  // Ensure fontSize is a number
-  themeSettings.value.fontSize = Number(themeSettings.value.fontSize);
-  
-  // Update the store with the new font size
-  const updatedTheme = {
-    ...store.currentTheme,
-    fontSize: Number(themeSettings.value.fontSize)
-  };
-  
-  store.updateTheme(updatedTheme);
-  console.log('Font size updated to:', updatedTheme.fontSize);
+  try {
+    // Ensure fontSize is a number
+    const newFontSize = Number(themeSettings.value.fontSize);
+    themeSettings.value.fontSize = newFontSize;
+    
+    // Validate font size is within reasonable range
+    if (isNaN(newFontSize) || newFontSize < 8 || newFontSize > 200) {
+      console.warn('Font size out of range, resetting to default');
+      themeSettings.value.fontSize = 48;
+      return;
+    }
+    
+    // Log before updating
+    console.log('Updating font size to:', newFontSize);
+    
+    // Force a CSS variable update throughout the app (do this first for immediate UI feedback)
+    document.documentElement.style.setProperty('--global-font-size', `${newFontSize}px`);
+    document.documentElement.style.setProperty('--font-size', `${newFontSize}px`); // Ensure both variables are set
+    
+    // Update the font size through store
+    try {
+      // Check if the specialized method exists first
+      if (typeof store.setFontSize === 'function') {
+        // Use the specialized method if available
+        store.setFontSize(newFontSize);
+        console.log('Font size updated successfully using setFontSize:', newFontSize);
+      } else {
+        // Fall back to using updateTheme
+        store.updateTheme({ fontSize: newFontSize });
+        console.log('Font size updated successfully using updateTheme:', newFontSize);
+      }
+    } catch (storeError) {
+      console.error('Error updating font size in store:', storeError);
+      // Update display locally even if store update fails
+      document.querySelectorAll('.display-text').forEach(el => {
+        el.style.fontSize = `${newFontSize}px`;
+      });
+    }
+  } catch (error) {
+    console.error('Error in font size change handler:', error);
+    // Reset to default if there's an error
+    themeSettings.value.fontSize = store.currentTheme.fontSize || 48;
+  }
 }
 
 const onFontColorChange = () => {

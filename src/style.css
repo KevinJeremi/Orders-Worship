@@ -11,6 +11,12 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Global presentation variables */
+  --font-size: 64px;
+  --global-font-size: 64px;
+  --presentation-text-color: #ffffff;
+  --presentation-bg-color: #1a1a2e;
 }
 
 a {

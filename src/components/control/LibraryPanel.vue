@@ -1,43 +1,12 @@
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { usePresentationStore } from '../../stores/presentationStore.js'
-import songData from '../../lib/songs.json'
+import { ref } from 'vue'
 import SimpleBiblePanel from './SimpleBiblePanel.vue'
+import SongPanel from './SongPanel.vue'
 
-const store = usePresentationStore()
 const activeTab = ref('songs')
-const songFilter = ref('')
-const filteredSongs = ref([])
-
-onMounted(() => {
-  // Initialize the song library from the JSON file only if not already set
-  if (!store.songLibrary || store.songLibrary.length === 0) {
-    // Use direct assignment instead of $patch to avoid reactivity loops
-    store.songLibrary = [...songData]
-  }
-  filteredSongs.value = store.songLibrary || songData
-})
 
 const switchTab = (tab) => {
   activeTab.value = tab
-}
-
-const filterSongs = () => {
-  const searchTerm = songFilter.value.toLowerCase().trim()
-  if (!searchTerm) {
-    filteredSongs.value = store.songLibrary
-    return
-  }
-  
-  filteredSongs.value = store.songLibrary.filter(song => {
-    return song.title.toLowerCase().includes(searchTerm) || 
-           song.artist.toLowerCase().includes(searchTerm)
-  })
-}
-
-const selectSong = (song) => {
-  // REFACTORED: Only update store, let ControlWindow handle IPC
-  store.selectSong(song.id)
 }
 </script>
 
@@ -65,28 +34,7 @@ const selectSong = (song) => {
     <div class="panel-content">
       <!-- Songs Tab -->
       <div v-if="activeTab === 'songs'" class="tab-content">
-        <div class="search-box">
-          <input 
-            v-model="songFilter"
-            type="text" 
-            placeholder="Search songs..." 
-            class="search-input"
-            @input="filterSongs"
-          />
-        </div>
-        
-        <div class="song-list">
-          <div 
-            v-for="song in filteredSongs" 
-            :key="song.id"
-            class="song-item"
-            :class="{ selected: store.selectedSong === song.id }"
-            @click="selectSong(song)"
-          >
-            <div class="song-title">{{ song.title }}</div>
-            <div class="song-artist">{{ song.artist }}</div>
-          </div>
-        </div>
+        <SongPanel />
       </div>
 
       <!-- Bible Tab -->
@@ -199,8 +147,5 @@ const selectSong = (song) => {
   margin-bottom: 4px;
 }
 
-.song-artist {
-  font-size: 12px;
-  color: #cccccc;
-}
+/* No longer needed - styling moved to SongPanel component */
 </style>

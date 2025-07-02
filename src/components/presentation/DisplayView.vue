@@ -46,18 +46,42 @@ const presentationData = ref({
   isInitialized: false  // Track if we received IPC data
 })
 
+// Helper function to ensure font size is updated consistently across the app
+const updateFontSize = (size) => {
+  const fontSize = Number(size) || 48;
+  console.log('DisplayView: Explicitly updating font size to:', fontSize);
+  
+  // Set CSS variables
+  document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
+  document.documentElement.style.setProperty('--global-font-size', `${fontSize}px`);
+  
+  // Directly apply to elements (brute force approach to ensure it works)
+  setTimeout(() => {
+    const elements = document.querySelectorAll('.display-text');
+    console.log(`Updating ${elements.length} display-text elements with font-size: ${fontSize}px`);
+    elements.forEach(el => {
+      el.style.fontSize = `${fontSize}px`;
+    });
+  }, 0);
+}
+
 // Computed styles with enhanced theming - REACTIVE TO LOCAL PRESENTATION DATA
 const textStyles = computed(() => {
   // Use local presentation data to ensure exact sync with IPC messages
   const currentTheme = presentationData.value.theme;
   const alignment = currentTheme.textAlign || 'center';
+  const fontSize = currentTheme.fontSize || 48;
   
-  // Log alignment changes for debugging
+  // Log alignment and font size changes for debugging
   console.log('DisplayView: Computing textStyles with alignment:', alignment);
+  console.log('DisplayView: Computing textStyles with fontSize:', fontSize);
+  
+  // Use helper function to update font size
+  updateFontSize(fontSize);
   
   return {
     fontFamily: currentTheme.fontFamily || 'Arial, sans-serif',
-    fontSize: `${currentTheme.fontSize || 48}px`,
+    fontSize: `${fontSize}px`, // Direct value without any calculations
     color: currentTheme.color || '#ffffff',
     // Use the alignment from theme settings
     textAlign: alignment,
@@ -199,16 +223,22 @@ watch(() => store.currentTheme, (newTheme) => {
   if (newTheme) {
     console.log('DisplayView: Theme updated from store:', JSON.stringify(newTheme));
     console.log('DisplayView: Text alignment is now:', newTheme.textAlign);
+    console.log('DisplayView: Font size is now:', newTheme.fontSize);
     
-    // Create a new object with explicit alignment to force reactivity
+    // Create a new object with explicit properties to force reactivity
     presentationData.value.theme = { 
       ...newTheme,
-      textAlign: newTheme.textAlign || 'center' // Explicitly set alignment
+      textAlign: newTheme.textAlign || 'center', // Explicitly set alignment
+      fontSize: Number(newTheme.fontSize) || 48 // Ensure fontSize is a number
     };
+    
+    // Update CSS variable immediately for responsive calculations
+    document.documentElement.style.setProperty('--font-size', `${presentationData.value.theme.fontSize}px`);
     
     // Double check the value was applied
     console.log('DisplayView: Updated presentationData theme:', JSON.stringify(presentationData.value.theme));
     console.log('DisplayView: Computed textStyles alignment:', textStyles.value.textAlign);
+    console.log('DisplayView: Computed textStyles fontSize:', textStyles.value.fontSize);
   }
 }, { deep: true });
 
@@ -500,15 +530,16 @@ const handleVideoLoaded = () => {
         </div>
       </div>
       
-      <!-- Metadata Display with slide-up animation -->
-      <Transition name="slide-up" mode="out-in">
+      <!-- Metadata Display with fade animation -->
+      <Transition name="fade" mode="out-in">
         <div 
           v-if="presentationData.content.metadata && presentationData.content.type !== 'blank'"
           :key="presentationData.content.metadata"
           class="metadata"
         >
           <div class="metadata-content">
-            <i class="metadata-icon">♪</i>
+            <!-- Hanya tampilkan ikon musik untuk konten bertipe lagu -->
+            <i v-if="presentationData.content.type === 'song'" class="metadata-icon">♪</i>
             {{ presentationData.content.metadata }}
           </div>
         </div>
@@ -560,6 +591,12 @@ const handleVideoLoaded = () => {
 
 
 <style scoped>
+/* Define CSS variables for font size control */
+:root {
+  --font-size: 48px;
+  --global-font-size: 48px;
+}
+
 /* Main container */
 .display-view {
   position: relative;
@@ -648,6 +685,8 @@ const handleVideoLoaded = () => {
   justify-content: center;
   flex-direction: column;
   position: relative;
+  /* Make sure CSS variables are respected, but don't override direct style binding */
+  font-size: var(--font-size);
 }
 
 .text-inner {
@@ -667,38 +706,43 @@ const handleVideoLoaded = () => {
 /* Metadata */
 .metadata {
   position: absolute;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 24px;
+  top: 20px;
+  right: 20px;
+  transform: none; /* Hapus transform untuk posisi kanan atas */
+  font-size: 20px;
   opacity: 0.8;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-  background-color: rgba(0, 0, 0, 0.3);
-  padding: 10px 25px;
+  background-color: rgba(0, 0, 0, 0.5);
+  padding: 6px 15px;
   border-radius: 30px;
   backdrop-filter: blur(5px);
   width: auto;
-  max-width: 80%;
-  text-align: center;
+  max-width: 40%;
+  text-align: right;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   /* Use theme colors from store using computed properties */
   color: v-bind('textStyles.color');
   font-family: v-bind('textStyles.fontFamily');
+  /* Tambahan untuk posisi di sudut kanan atas */
+  z-index: 100;
+  /* Transisi halus */
+  transition: all 0.3s ease;
 }
 
 .metadata-content {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: flex-end; /* Rata kanan */
+  gap: 8px;
 }
 
 .metadata-icon {
   font-style: normal;
-  font-size: 130%;
-  opacity: 0.8;
+  font-size: 120%;
+  opacity: 0.9;
+  color: rgba(255, 215, 0, 0.9); /* Warna kuning keemasan untuk ikon musik */
 }
 
 /* Progress Indicator */
@@ -925,7 +969,8 @@ kbd {
 /* Responsive font sizing and layout */
 @media (max-width: 1920px) {
   .display-text {
-    font-size: calc(var(--font-size, 48px) * 0.9) !important;
+    /* Font size is set by computed textStyles directly */
+    /* Only adjust other responsive properties here */
     max-width: 85%;
     padding: 0 40px;
   }
@@ -937,7 +982,7 @@ kbd {
 
 @media (max-width: 1280px) {
   .display-text {
-    font-size: calc(var(--font-size, 48px) * 0.8) !important;
+    /* Only adjust other responsive properties */
     max-width: 90%;
     padding: 0 30px;
   }
@@ -953,7 +998,7 @@ kbd {
 
 @media (max-width: 800px) {
   .display-text {
-    font-size: calc(var(--font-size, 48px) * 0.6) !important;
+    /* Only adjust other responsive properties */
     max-width: 95%;
     padding: 0 15px;
   }
@@ -967,10 +1012,11 @@ kbd {
   }
   
   .metadata {
-    font-size: 18px;
-    bottom: 40px;
-    padding: 8px 20px;
-    max-width: 90%;
+    font-size: 16px;
+    top: 15px;
+    right: 15px;
+    padding: 5px 12px;
+    max-width: 50%;
   }
   
   .progress-indicator {
@@ -982,9 +1028,18 @@ kbd {
 /* Extra small screens */
 @media (max-width: 480px) {
   .display-text {
-    font-size: calc(var(--font-size, 48px) * 0.5) !important;
+    /* Reduce font size for very small screens, but without !important */
+    font-size: calc(var(--font-size, 48px) * 0.7);
     max-width: 98%;
     padding: 0;
+  }
+  
+  .metadata {
+    font-size: 14px;
+    top: 10px;
+    right: 10px;
+    padding: 4px 10px;
+    max-width: 60%;
   }
   
   .text-inner {
