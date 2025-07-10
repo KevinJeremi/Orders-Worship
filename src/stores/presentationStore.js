@@ -342,19 +342,24 @@ export const usePresentationStore = defineStore('presentation', {
     async setMedia(mediaFile) {
       this.selectedMedia = mediaFile
       const isVideo = /\.(mp4|webm|mov)$/i.test(mediaFile)
-      
       console.log('🎬 setMedia called with:', mediaFile)
       console.log('🎬 isVideo:', isVideo)
-      
-      if (isVideo) {
-        this.setBackground({
-          type: 'video',
-          value: mediaFile
-        })
-      } else {
+
+      let filePath = mediaFile
+      // Jika bukan video dan path tidak diawali /media/, tambahkan prefix
+      if (!isVideo) {
+        if (filePath && !filePath.startsWith('/media/') && !filePath.startsWith('http') && !filePath.startsWith('/')) {
+          filePath = '/media/' + filePath
+        }
         this.setBackground({
           type: 'image',
-          value: mediaFile
+          value: filePath
+        })
+      } else {
+        // Untuk video, gunakan path apa adanya
+        this.setBackground({
+          type: 'video',
+          value: filePath
         })
       }
     },
